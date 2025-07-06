@@ -21,7 +21,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authorize -> authorize
                         // Allow unauthenticated access to Prometheus only
-                        .requestMatchers("/actuator/*", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/actuator/*", "/swagger-ui/**", "/v3/api-docs/**", "/lambdawarm").permitAll()
 
                         // All other requests need to be authenticated
                         .anyRequest().authenticated()
