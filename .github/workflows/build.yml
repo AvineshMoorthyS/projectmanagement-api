@@ -1,4 +1,4 @@
-name: TaskManagementSystem -> S3 -> AWS Lambda
+name: Deploy::ProjectManagement -> Dev Cloud
 
 on:
   push:
