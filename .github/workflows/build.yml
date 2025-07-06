@@ -1,0 +1,57 @@
+name: TaskManagementSystem -> S3 -> AWS Lambda
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      S3_BUCKET: ${{ secrets.S3_BUCKET_NAME }}
+      LAMBDA_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
+
+    steps:
+      - name: 🛎️  Checkout source
+        uses: actions/checkout@v4
+
+      - name: 🔧  Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 📦  Build shaded JAR
+        run: mvn clean package -DskipTests
+
+      - name: 📁  Find shaded JAR
+        id: find-jar
+        run: |
+          FILE=$(find target -name '*-lambda.jar' | head -n 1)
+          if [[ -z "$FILE" ]]; then
+            echo "❌ Shaded JAR not found! Make sure maven-shade-plugin is configured."
+            exit 1
+          fi
+          echo "✅ Found JAR: $FILE"
+          echo "JAR_PATH=$FILE" >> $GITHUB_ENV
+
+      - name: 🔐  Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: ☁️  Upload JAR to S3
+        run: |
+          aws s3 cp "$JAR_PATH" "s3://$S3_BUCKET/function.jar"
+
+      - name: 🚀  Update Lambda code from S3
+        run: |
+          aws lambda update-function-code \
+            --function-name "$LAMBDA_NAME" \
+            --s3-bucket "$S3_BUCKET" \
+            --s3-key function.jar
